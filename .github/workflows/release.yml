@@ -2,8 +2,8 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - master
   workflow_dispatch:
 
 jobs:
@@ -38,12 +38,17 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      - name: Get version from package.json
+        id: version
+        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        shell: bash
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v__VERSION__
-          releaseName: 'Forged In Shadow Torch Teleport v__VERSION__'
+          tagName: v${{ steps.version.outputs.VERSION }}
+          releaseName: 'Forged In Shadow Torch Teleport v${{ steps.version.outputs.VERSION }}'
           releaseBody: 'See the assets to download this version and install.'
           releaseDraft: false
           prerelease: false
