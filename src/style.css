@@ -1,0 +1,873 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  font-family: 'Inter', 'Segoe UI', 'Microsoft YaHei', sans-serif;
+
+  /* 主题色 - 简洁风格,无发光 */
+  --cyan: #00d9ff;
+  --magenta: #ff006e;
+  --purple-deep: #1a0033;
+  --purple-mid: #2d1b4e;
+  --blue-dark: #0a0f1e;
+  --blue-mid: #162447;
+
+  /* 强调色 */
+  --accent-primary: #00d9ff;
+  --accent-secondary: #ff006e;
+  --accent-warn: #ffaa00;
+
+  /* 文字颜色 */
+  --text-primary: #e8f4f8;
+  --text-secondary: #8fa5b8;
+  --text-muted: #5a6b7a;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.6; }
+  50% { transform: scale(1.05); opacity: 0.3; }
+  100% { transform: scale(0.95); opacity: 0.6; }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+body {
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+  background: transparent;
+  color: var(--text-primary);
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ========================================
+   主容器布局
+   ======================================== */
+
+.viewer-layout {
+  background: transparent;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+/* ========================================
+   地图选择器 - 横向卡片
+   ======================================== */
+
+.map-selector {
+  margin-bottom: 1.5rem;
+}
+
+.map-selector__scroll-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 240, 255, 0.3) transparent;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.5rem 0;
+}
+
+.map-selector__scroll-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.map-selector__scroll-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.map-selector__scroll-container::-webkit-scrollbar-thumb {
+  background: var(--accent-primary);
+  border-radius: 3px;
+}
+
+.map-selector__track {
+  padding: 0.5rem;
+}
+
+/* 地图卡片 */
+.map-card {
+  position: relative;
+  width: 120px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* 卡片背景 */
+.map-card__bg {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+/* 卡片边框 */
+.map-card__border {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+/* 卡片发光效果 - 禁用 */
+.map-card__glow {
+  display: none;
+}
+
+/* 卡片内容 */
+.map-card__content {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 图标 - 六边形 */
+.map-card__icon {
+  width: 8px;
+  height: 8px;
+  background: var(--accent-primary);
+  clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
+}
+
+.map-card__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.map-card__subtitle {
+  font-size: 0.625rem;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  margin-top: 0.25rem;
+  text-align: center;
+}
+
+/* 激活指示器 */
+.map-card__indicator {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.625rem;
+  right: 0.625rem;
+  height: 2px;
+  background: var(--accent-primary);
+  opacity: 0;
+  transform: scaleX(0);
+  transition: all 0.3s ease;
+}
+
+/* 扫描线效果 - 禁用 */
+.map-card__scanline {
+  display: none;
+}
+
+/* 悬停效果 */
+.map-card:hover {
+  transform: translateY(-2px);
+}
+
+.map-card:hover .map-card__bg {
+  background: transparent;
+}
+
+.map-card:hover .map-card__border {
+  border-color: rgba(0, 217, 255, 0.5);
+}
+
+/* 聚焦状态 */
+.map-card.is-focused .map-card__border {
+  border-color: rgba(0, 217, 255, 0.7);
+}
+
+/* 激活状态 */
+.map-card.is-active {
+  transform: none;
+}
+
+.map-card.is-active .map-card__bg {
+  background: transparent;
+}
+
+.map-card.is-active .map-card__border {
+  border-color: var(--accent-primary);
+  border-width: 2px;
+}
+
+.map-card.is-active .map-card__icon {
+  animation: pulse-ring 2s ease-in-out infinite;
+}
+
+.map-card.is-active .map-card__indicator {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+/* ========================================
+   地图面板
+   ======================================== */
+
+.map-board {
+  position: relative;
+}
+
+/* HUD 信息栏 */
+.map-board__hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hud-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(10, 15, 30, 0.8);
+  backdrop-filter: blur(10px);
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 240, 255, 0.3);
+}
+
+.hud-info__marker {
+  width: 3px;
+  height: 40px;
+  background: var(--accent-primary);
+}
+
+.hud-info__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.hud-info__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.hud-info__subtitle {
+  font-size: 0.875rem;
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
+.hud-desc {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(10, 15, 30, 0.4);
+  backdrop-filter: blur(10px);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 500px;
+}
+
+.hud-desc__icon {
+  width: 6px;
+  height: 6px;
+  background: var(--accent-secondary);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  flex-shrink: 0;
+}
+
+.hud-desc__text {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* 操作提示 - 移除 */
+.map-board__hint {
+  display: none;
+}
+
+/* 地图画布 */
+.map-canvas {
+  position: relative;
+  min-height: 600px;
+  background: transparent;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid rgba(0, 240, 255, 0.3);
+}
+
+/* 背景网格 */
+.map-canvas__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 地图层 */
+.map-canvas__layer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 600px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.map-canvas__layer:active {
+  cursor: grabbing;
+}
+
+.map-canvas__image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  filter: var(--map-image-filter, brightness(0.9) contrast(1.1));
+}
+
+.map-canvas__markers {
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* 角落装饰 - 科技感边角 */
+.map-canvas__corner {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.map-canvas__corner::before,
+.map-canvas__corner::after {
+  content: '';
+  position: absolute;
+  background: var(--accent-primary);
+}
+
+.map-canvas__corner::before {
+  width: 100%;
+  height: 2px;
+}
+
+.map-canvas__corner::after {
+  width: 2px;
+  height: 100%;
+}
+
+.map-canvas__corner--tl {
+  top: 0;
+  left: 0;
+}
+
+.map-canvas__corner--tl::before {
+  top: 0;
+  left: 0;
+}
+
+.map-canvas__corner--tl::after {
+  top: 0;
+  left: 0;
+}
+
+.map-canvas__corner--tr {
+  top: 0;
+  right: 0;
+}
+
+.map-canvas__corner--tr::before {
+  top: 0;
+  right: 0;
+}
+
+.map-canvas__corner--tr::after {
+  top: 0;
+  right: 0;
+}
+
+.map-canvas__corner--bl {
+  bottom: 0;
+  left: 0;
+}
+
+.map-canvas__corner--bl::before {
+  bottom: 0;
+  left: 0;
+}
+
+.map-canvas__corner--bl::after {
+  bottom: 0;
+  left: 0;
+}
+
+.map-canvas__corner--br {
+  bottom: 0;
+  right: 0;
+}
+
+.map-canvas__corner--br::before {
+  bottom: 0;
+  right: 0;
+}
+
+.map-canvas__corner--br::after {
+  bottom: 0;
+  right: 0;
+}
+
+/* ========================================
+   地图标记点 - 简洁版
+   ======================================== */
+
+.map-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 1;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  /* Reset button styles */
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  outline: none;
+}
+
+/* 隐藏不需要的元素 */
+.map-marker__pulse,
+.map-marker__ring,
+.map-marker__line {
+  display: none;
+}
+
+/* 核心点 - 简化 */
+.map-marker__core {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  background: transparent;
+  border-radius: 50%;
+  border: 2px solid var(--accent-primary);
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+.map-marker__core-inner {
+  display: none;
+}
+
+/* 标签容器 - 始终显示 */
+.map-marker__label-container {
+  position: relative;
+  top: 0;
+  left: 0;
+  transform: none;
+  white-space: nowrap;
+  opacity: 1;
+  pointer-events: none;
+}
+
+.map-marker__label-bg {
+  display: none;
+}
+
+.map-marker__label-text {
+  position: relative;
+  display: block;
+  padding: 0.25rem 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+  z-index: 1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* 悬停效果 - 简化 */
+.map-marker:hover {
+  z-index: 100;
+}
+
+.map-marker:hover .map-marker__core {
+  transform: scale(1.3);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.map-marker:hover .map-marker__label-text {
+  color: var(--accent-primary);
+}
+
+/* 选中状态 - 简化 */
+.map-marker.is-selected {
+  z-index: 200;
+}
+
+.map-marker.is-selected .map-marker__core {
+  background: rgba(255, 255, 255, 0.95);
+  transform: scale(1.2);
+}
+
+.map-marker.is-selected .map-marker__label-text {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+/* 调试模式拖动 */
+.map-marker.is-draggable {
+  cursor: move !important;
+}
+
+.map-marker.is-draggable .map-marker__core {
+  border-color: #ffaa00;
+}
+
+.map-marker.is-draggable:hover .map-marker__core {
+  background: rgba(255, 170, 0, 0.5);
+  border-color: #ffaa00;
+}
+/* ========================================
+   状态提示
+   ======================================== */
+
+.board-status {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1rem 2rem;
+  background: transparent;
+  backdrop-filter: none;
+  border: 2px solid var(--accent-primary);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 1000;
+}
+
+.board-status.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-10px);
+}
+
+/* ========================================
+   头部徽章
+   ======================================== */
+
+.viewer-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 217, 255, 0.4);
+  background: transparent;
+  color: var(--accent-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.viewer-hero__badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  animation: pulse-ring 2s ease-in-out infinite;
+}
+
+/* ========================================
+   透明度控制
+   ======================================== */
+
+.opacity-control {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: transparent;
+  backdrop-filter: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.opacity-control__label {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.opacity-control__value {
+  min-width: 45px;
+  text-align: right;
+  font-size: 0.875rem;
+  color: var(--accent-primary);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.opacity-control__slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 120px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.opacity-control__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  border: 2px solid rgba(10, 15, 30, 0.9);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.opacity-control__slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.opacity-control__slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  border: 2px solid rgba(10, 15, 30, 0.9);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.opacity-control__slider::-moz-range-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* ========================================
+   100% 不透明度状态
+   ======================================== */
+
+body.is-opaque {
+  background: transparent;
+}
+
+body.is-opaque .map-canvas {
+  background: transparent;
+}
+
+/* ========================================
+   Debug Panel
+   ======================================== */
+
+.debug-panel {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  background: rgba(10, 15, 30, 0.95);
+  border: 1px solid var(--accent-primary);
+  border-radius: 8px;
+  padding: 1rem;
+  z-index: 1000;
+  min-width: 400px;
+}
+
+.debug-panel__header {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.debug-panel__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.debug-control {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.debug-control label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  min-width: 80px;
+}
+
+.debug-select {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 0.5rem;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.debug-select:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent-primary);
+}
+
+.debug-info {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.debug-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 0.5rem;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  width: 80px;
+}
+
+.debug-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.debug-unit {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-left: 0.25rem;
+}
+
+.debug-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.debug-button {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.debug-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--accent-primary);
+}
+
+.debug-button--primary {
+  background: rgba(0, 217, 255, 0.1);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.debug-button--primary:hover {
+  background: rgba(0, 217, 255, 0.2);
+}
+
+.scan-button {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.debug-marker-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.debug-marker-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.debug-marker-coord {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+.debug-output {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 0.75rem;
+  color: var(--text-primary);
+  font-size: 0.7rem;
+  font-family: monospace;
+  min-height: 120px;
+  resize: vertical;
+}
+
+
+
+
+
