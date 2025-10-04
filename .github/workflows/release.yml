@@ -41,11 +41,42 @@ jobs:
         shell: bash
 
       - uses: tauri-apps/tauri-action@v0
+        id: tauri-build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: v${{ steps.version.outputs.VERSION }}
           releaseName: 'Forged In Shadow Torch Teleport v${{ steps.version.outputs.VERSION }}'
-          releaseBody: 'See the assets to download this version and install.'
+          releaseBody: |
+            ## 📦 Download Options / 下载选项
+
+            Choose the package that fits your needs / 选择适合您的安装包：
+
+            - **🪟 MSI Installer / MSI 安装包** (`*.msi`)
+              Standard Windows installer / Windows 标准安装程序
+
+            - **⚡ NSIS Installer / NSIS 安装包** (`*-setup.exe`)
+              Lightweight installer with auto-update support / 轻量级安装程序，支持自动更新
+
+            - **🚀 Portable EXE / 便携版** (`Forged-In-Shadow-Torch-Save-Point-Teleport-Mod.exe`)
+              Standalone executable, no installation required / 独立可执行文件，无需安装
+
+            ---
+
+            ### 📝 Requirements / 系统要求
+
+            - Windows 10/11 (x64)
+            - UE4SS installed / 已安装 UE4SS
+            - Forged In Shadow Torch / 暗影火炬城 
+
+            ### 🐛 Report Issues / 问题反馈
+
+            Found a bug? / 发现问题？[Open an issue / 提交 Issue](https://github.com/${{ github.repository }}/issues)
           releaseDraft: false
           prerelease: false
+
+      - name: Upload standalone EXE
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          files: src-tauri/target/release/Forged-In-Shadow-Torch-Save-Point-Teleport-Mod.exe
