@@ -52,13 +52,13 @@ jobs:
 
             Choose the package that fits your needs / 选择适合您的安装包：
 
-            - **🪟 MSI Installer / MSI 安装包** (`*.msi`)
+            - **🪟 [MSI Installer / MSI 安装包](https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.VERSION }}/Forged.In.Shadow.Torch.Teleport.Viewer_${{ steps.version.outputs.VERSION }}_x64_en-US.msi)**
               Standard Windows installer / Windows 标准安装程序
 
-            - **⚡ NSIS Installer / NSIS 安装包** (`*-setup.exe`)
+            - **⚡ [NSIS Installer / NSIS 安装包](https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.VERSION }}/Forged.In.Shadow.Torch.Teleport.Viewer_${{ steps.version.outputs.VERSION }}_x64-setup.exe)**
               Lightweight installer with auto-update support / 轻量级安装程序，支持自动更新
 
-            - **🚀 Portable EXE / 便携版** (`Forged-In-Shadow-Torch-Save-Point-Teleport-Mod.exe`)
+            - **🚀 [Portable EXE / 便携版](https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.VERSION }}/Forged-In-Shadow-Torch-Save-Point-Teleport-Mod.exe)**
               Standalone executable, no installation required / 独立可执行文件，无需安装
 
             ---
@@ -67,7 +67,7 @@ jobs:
 
             - Windows 10/11 (x64)
             - UE4SS installed / 已安装 UE4SS
-            - Forged In Shadow Torch / 暗影火炬城 
+            - Forged In Shadow Torch / 暗影火炬城
 
             ### 🐛 Report Issues / 问题反馈
 
