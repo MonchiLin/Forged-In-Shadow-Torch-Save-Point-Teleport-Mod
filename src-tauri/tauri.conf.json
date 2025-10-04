@@ -32,9 +32,6 @@
     "targets": "all",
     "icon": [
       "icons/icon.ico"
-    ],
-    "windows": {
-      "targets": "all"
-    }
+    ]
   }
 }
