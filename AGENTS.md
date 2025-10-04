@@ -24,7 +24,31 @@ npm run dev          # 浏览器调试
 npm run tauri:dev    # 桌面应用调试
 npm run build        # 前端生产构建（输出到 dist/）
 npm run tauri:build  # 完整应用构建（输出到 src-tauri/target/release/）
+npm run mod          # 运行 Lua 模组（用于开发调试）
 ```
+
+## 自动发布
+项目配置了 GitHub Actions 自动发布流程：
+
+### 工作流程
+1. 推送代码到 `master` 分支自动触发发布
+2. 从 `package.json` 读取版本号（如 `0.1.0`）
+3. 编译 Windows 安装包（.msi 和 .exe）
+4. 创建 Git tag（如 `v0.1.0`）
+5. 创建 GitHub Release 并上传安装包
+
+### 版本更新
+修改 `package.json` 中的 `version` 字段，然后提交推送：
+```json
+{
+  "version": "0.2.0"
+}
+```
+
+### 配置文件
+- `.github/workflows/release.yml` - GitHub Actions 工作流配置
+- `tauriScript: npm run tauri:build` - 使用项目的构建脚本
+- 权限：`contents: write` 允许创建 release 和 tag
 
 ## 文件通信机制
 **目的**：Tauri 与 UE4SS Lua 模组通过文件进行进程间通信。
