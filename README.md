@@ -1,22 +1,34 @@
-# 图像展示前端项目
+# Forged In Shadow Torch - 保存点传送模组
 
-基于 Vite 的桌面演示界面，用于浏览传送控制台草图。顶部切换 6 个区域，中央面板显示放大的地图，支持缩放、拖拽和锚点复制。
+《Forged In Shadow Torch》(暗影火炬城) 游戏的保存点传送工具，提供可视化地图界面，点击标记点即可传送到对应保存点。
 
-## 地图配置
+## 功能特性
 
-所有地图元数据位于 src/config/maps.json：
-- image：对应的 PNG 资源路径
-- markers：标记相对坐标（百分比）与复制文本
-- 	heme：可选的额外样式变量（当前仅保留 --map-image-filter）
+- 🗺️ **可视化地图**：显示所有保存点位置，支持缩放（0.6x-8.0x）
+- 🎯 **一键传送**：点击地图标记点传送到对应位置
+- 🎮 **手柄支持**：支持 Xbox 手柄操作（仅 Windows）
+- ⚙️ **窗口调整**：可调整窗口大小和透明度
 
-修改 JSON 后重新运行开发或构建命令即可生效。
+## 下载安装
 
-## 使用方法
+前往 [Releases](../../releases) 页面下载最新版本：
 
-`powershell
-npm install
-npm run dev
-`
+- **MSI 安装包**（推荐）：`Forged.In.Shadow.Torch.Teleport.Viewer_{版本}_x64_en-US.msi`
+- **NSIS 安装程序**：`Forged.In.Shadow.Torch.Teleport.Viewer_{版本}_x64-setup.exe`
+- **独立 EXE**（绿色版）：`Forged-In-Shadow-Torch-Save-Point-Teleport-Mod.exe`
 
-根据终端输出的地址打开浏览器。滚轮缩放（双击复位），按住左键拖动画面，点击标记即可复制锚点编号。若需生成静态资源，执行 
-pm run build，构建结果位于 dist/。
+## 使用说明
+
+### 1. 安装游戏模组
+1. 下载并安装 [UE4SS](https://github.com/UE4SS-RE/RE-UE4SS) 3.0.1 到游戏目录
+2. 将本项目的 `scripts/main.lua` 复制到游戏目录：`{游戏目录}/Binaries/Win64/Mods/`
+3. 启动游戏，UE4SS 控制台显示 `[SavePointTeleport] Initialization complete!` 即为成功
+
+### 2. 使用传送工具
+1. 运行传送工具（桌面应用）
+2. 点击窗口顶部的 "Scan" 按钮扫描保存点
+3. 点击地图上的标记点即可传送
+
+## 许可证
+
+本项目仅供学习和个人使用，请勿用于商业用途。

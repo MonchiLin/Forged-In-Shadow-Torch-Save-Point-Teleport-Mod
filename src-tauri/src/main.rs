@@ -7,11 +7,8 @@ use serde_json::json;
 use std::io::Write;
 use std::net::TcpStream;
 use std::time::Duration;
-use tauri::{Manager, WebviewWindow};
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
-use window_control::{initialize_opacity, set_window_opacity};
-
-const VISIBILITY_TOGGLE: &str = "Ctrl+Shift+Space";
+use tauri::Manager;
+use window_control::{initialize_opacity, set_window_opacity, save_current_window_position};
 
 #[tauri::command]
 fn push_coord(x: f64, y: f64, label: Option<String>) -> Result<(), String> {
@@ -131,56 +128,50 @@ fn teleport_to_savepoint(savepoint_name: String) -> Result<String, String> {
     send_lua_command(&cmd)
 }
 
+#[tauri::command]
+fn update_in_game_points(points_json: String) -> Result<(), String> {
+    use std::fs;
+    use std::path::PathBuf;
+
+    // Get the path to in_game_points.json relative to the executable
+    let mut config_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    config_path.pop(); // Go up from src-tauri to project root
+    config_path.push("src");
+    config_path.push("config");
+    config_path.push("in_game_points.json");
+
+    println!("[Rust] Updating in_game_points.json at: {:?}", config_path);
+
+    // Validate JSON before writing
+    serde_json::from_str::<serde_json::Value>(&points_json)
+        .map_err(|e| format!("Invalid JSON: {}", e))?;
+
+    // Write to file
+    fs::write(&config_path, points_json)
+        .map_err(|e| format!("Failed to write file: {}", e))?;
+
+    println!("[Rust] Successfully updated in_game_points.json");
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
             let app_handle = app.handle();
             initialize_opacity(&app_handle);
             #[cfg(windows)]
             gamepad::spawn(&app_handle);
 
-            app.global_shortcut().on_shortcut(
-                VISIBILITY_TOGGLE,
-                move |handle, _shortcut, event| {
-                    if event.state == ShortcutState::Pressed {
-                        if let Some(window) = handle.get_webview_window("main") {
-                            match window.is_visible() {
-                                Ok(true) => {
-                                    let _ = window.hide();
-                                    dispatch_visibility(&window, false);
-                                }
-                                Ok(false) => {
-                                    let _ = window.show();
-                                    let _ = window.set_focus();
-                                    dispatch_visibility(&window, true);
-                                }
-                                Err(error) => {
-                                    eprintln!("failed to read window visibility: {error}");
-                                }
-                            }
-                        }
-                    }
-                },
-            )?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             push_coord,
             scan_save_points,
             teleport_to_savepoint,
-            set_window_opacity
+            set_window_opacity,
+            update_in_game_points,
+            save_current_window_position
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-fn dispatch_visibility(window: &WebviewWindow, visible: bool) {
-    let script = format!(
-        "window.dispatchEvent(new CustomEvent('viewer-visibility', {{ detail: {} }}));",
-        visible
-    );
-    if let Err(error) = window.eval(&script) {
-        eprintln!("failed to dispatch visibility event: {error}");
-    }
 }

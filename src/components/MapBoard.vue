@@ -27,12 +27,16 @@
           :class="['map-marker',
                    { 'is-selected': navigationMode === navEnum.MARKER && markerIndex === selectedMarkerIndex },
                    { 'is-draggable': debugMode }]"
-          :style="{ left: marker.x + '%', top: marker.y + '%' }"
+          :style="{
+            left: marker.x + '%',
+            top: marker.y + '%',
+            transform: `translate(-50%, -50%) scale(${markerScale})`
+          }"
           @click="handleMarkerInteraction($event, markerIndex, marker)"
           @mousedown="debugMode ? startDrag($event, markerIndex, marker) : null"
         >
           <span class="map-marker__core"></span>
-          <span class="map-marker__label">{{ marker.label }}</span>
+          <span v-if="showLabel" class="map-marker__label">{{ marker.label }}</span>
         </button>
       </div>
 
@@ -68,6 +72,14 @@ const props = defineProps({
   debugMode: {
     type: Boolean,
     default: false
+  },
+  showLabel: {
+    type: Boolean,
+    default: false
+  },
+  mapScale: {
+    type: Number,
+    default: 1
   }
 });
 
@@ -81,6 +93,11 @@ const markers = computed(() =>
   Array.isArray(props.map?.markers) ? props.map.markers : []
 );
 const imageSrc = computed(() => props.map?.image ?? '');
+
+// Calculate inverse scale for markers
+const markerScale = computed(() => {
+  return props.mapScale > 0 ? 1 / props.mapScale : 1;
+});
 
 const dragging = ref(false);
 const dragMarkerIndex = ref(-1);
@@ -155,9 +172,10 @@ defineExpose({ canvas, mapLayer, image });
 <style scoped>
 .map-board {
   width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .map-board__hint {
@@ -201,7 +219,6 @@ defineExpose({ canvas, mapLayer, image });
 }
 
 .map-image {
-  position: absolute;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -211,7 +228,6 @@ defineExpose({ canvas, mapLayer, image });
 
 .map-marker {
   position: absolute;
-  transform: translate(-50%, -50%);
   cursor: pointer;
   z-index: 10;
   background: transparent;
@@ -219,6 +235,7 @@ defineExpose({ canvas, mapLayer, image });
   padding: 0;
   outline: none;
   transition: filter 0.2s ease;
+  transform-origin: center center;
 }
 
 .map-marker:hover {

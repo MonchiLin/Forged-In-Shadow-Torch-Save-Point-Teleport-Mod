@@ -1,8 +1,8 @@
 <template>
   <div
-    class="viewer-layout relative grid w-full h-full gap-6 px-8 pb-10 pt-8"
+    class="viewer-layout relative flex flex-col w-full h-full gap-6 px-8 pb-10 pt-8"
   >
-    <header data-tauri-drag-region class="relative z-10 flex items-end justify-between pt-2">
+    <header data-tauri-drag-region class="relative z-10 flex items-end justify-between pt-2 flex-shrink-0">
       <div class="flex max-w-[520px] flex-col gap-1.5">
         <span class="viewer-hero__badge">Teleport Console</span>
       </div>
@@ -15,6 +15,7 @@
           {{ isScanning ? 'Scanning...' : 'Scan' }}
         </button>
         <button
+          v-if="isDevelopment"
           @click="showDebugPanel = !showDebugPanel"
           class="scan-button rounded-full px-4 py-2 text-xs uppercase tracking-[0.16em] transition-colors hover:bg-white/10"
         >
@@ -37,7 +38,7 @@
     </header>
 
     <!-- Debug Panel -->
-    <div v-if="showDebugPanel" class="debug-panel">
+    <div v-if="showDebugPanel" class="debug-panel flex-shrink-0">
       <div class="debug-panel__header">坐标调试 (拖动标记点)</div>
       <div class="debug-panel__controls">
         <div class="debug-info" v-if="!draggedMarker">
@@ -57,22 +58,16 @@
       </div>
     </div>
 
-    <MapSelector
-      :maps="maps"
-      :active-index="activeIndex"
-      :focused-index="focusedMapIndex"
-      :navigation-mode="navigationMode"
-      :nav-enum="NAVIGATION_MODE"
-      @select="handleMapSelect"
-    />
-
     <MapBoard
       ref="boardRef"
+      class="flex-1 min-h-0"
       :map="activeMap"
       :navigation-mode="navigationMode"
       :nav-enum="NAVIGATION_MODE"
       :selected-marker-index="selectedMarkerIndex"
       :debug-mode="showDebugPanel"
+      :show-label="isDevelopment"
+      :map-scale="mapScale"
       @marker-click="handleMarkerClick"
       @marker-drag-start="handleMarkerDragStart"
       @marker-drag-end="handleMarkerDragEnd"
@@ -124,76 +119,32 @@ function resolveMapImagePath(imagePath) {
   }
 }
 
-// Coordinate ranges (calculated once)
-const yVals = inGamePoints.map(p => p.y);
-const zVals = inGamePoints.map(p => p.z);
-const coordRanges = {
-  yMin: Math.min(...yVals),
-  yMax: Math.max(...yVals),
-  zMin: Math.min(...zVals),
-  zMax: Math.max(...zVals)
-};
-
-// Convert game coordinates to map percentage
-function convertGamePointsToMarkers(points, mode = 2, offsetXVal = 0, offsetYVal = 0, scaleXVal = 1, scaleYVal = 1) {
+// Simple coordinate system: y and z in JSON are already map percentages (0-100)
+// No complex conversion needed - just use the values directly
+function convertGamePointsToMarkers(points) {
   if (!Array.isArray(points) || points.length === 0) {
     return [];
   }
 
-  const { yMin, yMax, zMin, zMax } = coordRanges;
-
   return points.map(point => {
-    let x, y;
-
-    switch(mode) {
-      case 1: // X=Y, Y=Z (都不翻转)
-        x = ((point.y - yMin) / (yMax - yMin) * 100);
-        y = ((point.z - zMin) / (zMax - zMin) * 100);
-        break;
-      case 2: // X=Y, Y=Z (Z翻转)
-        x = ((point.y - yMin) / (yMax - yMin) * 100);
-        y = 100 - ((point.z - zMin) / (zMax - zMin) * 100);
-        break;
-      case 3: // X=Z, Y=Y (Y翻转)
-        x = ((point.z - zMin) / (zMax - zMin) * 100);
-        y = 100 - ((point.y - yMin) / (yMax - yMin) * 100);
-        break;
-      case 4: // X=Z, Y=Y (都不翻转)
-        x = ((point.z - zMin) / (zMax - zMin) * 100);
-        y = ((point.y - yMin) / (yMax - yMin) * 100);
-        break;
-      case 5: // X=Y翻转, Y=Z
-        x = 100 - ((point.y - yMin) / (yMax - yMin) * 100);
-        y = ((point.z - zMin) / (zMax - zMin) * 100);
-        break;
-      case 6: // X=Y翻转, Y=Z翻转
-        x = 100 - ((point.y - yMin) / (yMax - yMin) * 100);
-        y = 100 - ((point.z - zMin) / (zMax - zMin) * 100);
-        break;
-      default:
-        x = ((point.y - yMin) / (yMax - yMin) * 100);
-        y = 100 - ((point.z - zMin) / (zMax - zMin) * 100);
-    }
-
-    // Apply scale and offset
-    x = x * scaleXVal + offsetXVal;
-    y = y * scaleYVal + offsetYVal;
-
     return {
       id: point.name,
       label: point.name,
-      x: parseFloat(x.toFixed(1)),
-      y: parseFloat(y.toFixed(1))
+      x: parseFloat(point.y.toFixed(1)), // y in JSON = x on map (0-100%)
+      y: parseFloat(point.z.toFixed(1)), // z in JSON = y on map (0-100%)
+      originalPoint: point
     };
   });
 }
 
 // Debug state
+const isDevelopment = import.meta.env.DEV;
 const showDebugPanel = ref(false);
 const draggedMarker = ref(null);
 const coordOutput = ref(null);
+const originalMarkerPositions = ref(new Map()); // Track original positions: markerId -> {x, y}
 
-// Create single map configuration from in_game_points.json (模式2固定)
+// Create single map configuration from in_game_points.json
 const maps = ref([
   {
     id: 'world-map',
@@ -201,10 +152,7 @@ const maps = ref([
     subtitle: '',
     description: '完整的游戏世界地图，显示所有保存点位置',
     image: resolveMapImagePath('/assets/WorldMinimap.png'),
-    markers: convertGamePointsToMarkers(inGamePoints, 2).map((marker, index) => ({
-      ...marker,
-      originalPoint: inGamePoints[index] // 保存原始数据
-    })),
+    markers: convertGamePointsToMarkers(inGamePoints),
     theme: {
       '--map-image-filter': 'none'
     }
@@ -216,13 +164,13 @@ if (maps.value.length === 0 || maps.value[0].markers.length === 0) {
 }
 
 const SCALE_MIN = 0.6;
-const SCALE_MAX = 3.0;
+const SCALE_MAX = 8.0;
 const ALLOWED_THEME_KEYS = new Set(['--map-image-filter']);
 
 const activeIndex = ref(0);
 const statusMessage = ref('');
 const navigationMode = ref(NAVIGATION_MODE.MARKER);
-const selectedMarkerIndex = ref(0);
+const selectedMarkerIndex = ref(-1);
 const focusedMapIndex = ref(0);
 const boardRef = ref(null);
 const isScanning = ref(false);
@@ -288,6 +236,20 @@ watch(
   }
 );
 
+// Watch debug panel toggle
+watch(showDebugPanel, async (newValue, oldValue) => {
+  if (newValue === true && oldValue === false) {
+    // Debug mode opened - save original positions
+    originalMarkerPositions.value.clear();
+    activeMap.value.markers.forEach(marker => {
+      originalMarkerPositions.value.set(marker.id, { x: marker.x, y: marker.y });
+    });
+  } else if (newValue === false && oldValue === true) {
+    // Debug mode closed - check if any positions changed
+    await saveChangedMarkerPositions();
+  }
+});
+
 const { handleGamepadEvent } = useGamepadNavigation({
   navigationMode,
   markerCount,
@@ -299,14 +261,16 @@ const { handleGamepadEvent } = useGamepadNavigation({
   showCopyStatus
 });
 
+// Simple coordinate system: map x/y are directly stored as JSON y/z (0-100%)
 function getMarkerJson(marker) {
   const original = marker.originalPoint;
+
   return JSON.stringify({
     i: original.i,
     name: original.name,
     x: original.x,
-    y: marker.x, // 新的地图 x 坐标作为游戏 y
-    z: marker.y  // 新的地图 y 坐标作为游戏 z
+    y: marker.x, // Map x% -> JSON y field
+    z: marker.y  // Map y% -> JSON z field
   }, null, 2);
 }
 
@@ -325,6 +289,66 @@ async function copyCoordinates() {
       document.execCommand('copy');
       showCopyStatus('已复制到剪贴板');
     }
+  }
+}
+
+async function saveChangedMarkerPositions() {
+  if (!isTauriRuntimeAvailable()) {
+    console.warn('Tauri runtime not available');
+    return;
+  }
+
+  // Check if any positions changed
+  let hasChanges = false;
+  const updatedPoints = [];
+
+  for (const marker of activeMap.value.markers) {
+    const original = originalMarkerPositions.value.get(marker.id);
+    if (!original) continue;
+
+    const xChanged = Math.abs(marker.x - original.x) > 0.01;
+    const yChanged = Math.abs(marker.y - original.y) > 0.01;
+
+    if (xChanged || yChanged) {
+      hasChanges = true;
+    }
+
+    // Simple coordinate system: map x/y directly to JSON y/z
+    updatedPoints.push({
+      i: marker.originalPoint.i,
+      name: marker.originalPoint.name,
+      x: marker.originalPoint.x,
+      y: marker.x, // Map x% -> JSON y field
+      z: marker.y  // Map y% -> JSON z field
+    });
+  }
+
+  if (!hasChanges) {
+    console.log('No marker positions changed');
+    return;
+  }
+
+  // Sort by index
+  updatedPoints.sort((a, b) => a.i - b.i);
+
+  const jsonStr = JSON.stringify(updatedPoints, null, 2);
+
+  try {
+    await invoke('update_in_game_points', { pointsJson: jsonStr });
+    console.log('Successfully saved updated marker positions');
+    showCopyStatus('已保存坐标更改');
+
+    // Update in-memory data
+    activeMap.value.markers.forEach(marker => {
+      const updated = updatedPoints.find(p => p.name === marker.id);
+      if (updated) {
+        marker.originalPoint.y = updated.y;
+        marker.originalPoint.z = updated.z;
+      }
+    });
+  } catch (error) {
+    console.error('Failed to save marker positions:', error);
+    showCopyStatus('保存失败: ' + error);
   }
 }
 
@@ -364,6 +388,50 @@ const handleGamepadDomEvent = (event) => {
   handleGamepadEvent(event.detail ?? {});
 };
 
+// Track window position with debounce
+let savePositionTimer = null;
+const SAVE_POSITION_DEBOUNCE = 500; // 500ms debounce
+
+async function saveWindowPosition() {
+  if (!isTauriRuntimeAvailable()) {
+    return;
+  }
+
+  try {
+    await invoke('save_current_window_position');
+    console.log('Window position saved');
+  } catch (error) {
+    console.error('Failed to save window position:', error);
+  }
+}
+
+function handleWindowMove() {
+  // Debounce saving to avoid excessive writes
+  if (savePositionTimer) {
+    clearTimeout(savePositionTimer);
+  }
+  savePositionTimer = setTimeout(() => {
+    saveWindowPosition();
+  }, SAVE_POSITION_DEBOUNCE);
+}
+
+// Track window resize with debounce
+let saveResizeTimer = null;
+const SAVE_RESIZE_DEBOUNCE = 1000; // 1 second debounce
+
+function handleWindowResize() {
+  // Reset map transform to default when window is resized
+  resetTransform();
+
+  // Debounce saving to avoid excessive writes during resize
+  if (saveResizeTimer) {
+    clearTimeout(saveResizeTimer);
+  }
+  saveResizeTimer = setTimeout(() => {
+    saveWindowPosition();
+  }, SAVE_RESIZE_DEBOUNCE);
+}
+
 onMounted(() => {
   resetToDefaultSelection();
   initializeOpacityControl();
@@ -371,6 +439,14 @@ onMounted(() => {
   if (typeof window !== 'undefined') {
     window.addEventListener('viewer-visibility', handleVisibilityEvent);
     window.addEventListener('gamepad-event', handleGamepadDomEvent);
+
+    // Listen for window move and resize events (Tauri-specific)
+    if (isTauriRuntimeAvailable()) {
+      // Save position on window blur (user moved window and clicked elsewhere)
+      window.addEventListener('blur', saveWindowPosition);
+      // Save position and size on window resize
+      window.addEventListener('resize', handleWindowResize);
+    }
   }
 });
 
@@ -378,6 +454,16 @@ onBeforeUnmount(() => {
   if (statusTimer) {
     clearTimeout(statusTimer);
   }
+  if (savePositionTimer) {
+    clearTimeout(savePositionTimer);
+  }
+  if (saveResizeTimer) {
+    clearTimeout(saveResizeTimer);
+  }
+
+  // Save position one last time before unmount
+  saveWindowPosition();
+
   const { canvas } = getBoardElements();
   if (canvas?._cleanupMapInteraction) {
     canvas._cleanupMapInteraction();
@@ -385,6 +471,11 @@ onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('viewer-visibility', handleVisibilityEvent);
     window.removeEventListener('gamepad-event', handleGamepadDomEvent);
+
+    if (isTauriRuntimeAvailable()) {
+      window.removeEventListener('blur', saveWindowPosition);
+      window.removeEventListener('resize', handleWindowResize);
+    }
   }
 });
 
@@ -396,6 +487,7 @@ function getBoardElements() {
   };
 }
 
+const mapScale = ref(1);
 let mapTransform = {
   scale: 1,
   translateX: 0,
@@ -432,6 +524,7 @@ function initMapInteraction() {
     mapTransform.translateX = mouseX - (mouseX - mapTransform.translateX) * scaleRatio;
     mapTransform.translateY = mouseY - (mouseY - mapTransform.translateY) * scaleRatio;
     mapTransform.scale = newScale;
+    mapScale.value = newScale; // Update reactive state
 
     applyTransform(mapLayer);
   };
@@ -515,6 +608,7 @@ function resetTransform() {
     translateX: 0,
     translateY: 0
   };
+  mapScale.value = 1; // Update reactive state
   const { mapLayer } = getBoardElements();
   applyTransform(mapLayer);
 }
@@ -546,7 +640,7 @@ function setActiveMap(index, options = {}) {
   if (syncFocus) {
     focusedMapIndex.value = index;
   }
-  selectedMarkerIndex.value = 0;
+  selectedMarkerIndex.value = -1;
   alignMarkerIndex();
 }
 
@@ -555,8 +649,8 @@ function alignMarkerIndex() {
     selectedMarkerIndex.value = -1;
     return;
   }
-  if (selectedMarkerIndex.value < 0 || selectedMarkerIndex.value >= markerCount.value) {
-    selectedMarkerIndex.value = 0;
+  if (selectedMarkerIndex.value >= markerCount.value) {
+    selectedMarkerIndex.value = -1;
   }
 }
 
@@ -719,14 +813,14 @@ function handleVisibilityChange(isVisible) {
   if (!isVisible) {
     navigationMode.value = NAVIGATION_MODE.MAP;
     setFocusedMap(activeIndex.value);
+    // Save window position when hiding
+    saveWindowPosition();
     return;
   }
   navigationMode.value = NAVIGATION_MODE.MARKER;
   alignMarkerIndex();
   setFocusedMap(activeIndex.value);
-  nextTick(() => {
-    resetTransform();
-  });
+  // Don't reset transform - preserve user's zoom and pan
 }
 
 async function handleScanClick() {
